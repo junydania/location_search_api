@@ -54,9 +54,11 @@ class V1::PlacesController < ApplicationController
         end
     end
 
+
     def validate_google_api
-        @client = GooglePlaces::Client.new(ENV["google_api_key"])
+        @client = GooglePlaces::Client.new(ENV["GOOGLE_API_KEY"])
     end
+
 
     def param_value_is_valid?(latitude, longitude)
         if latitude != 0.0 || longitude != 0.0
