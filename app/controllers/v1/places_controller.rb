@@ -1,18 +1,43 @@
-class V1::PlacesController < ApplicationController
-    
+class V1::PlacesController < ApplicationController    
     before_action :validate_google_api
-    
-    API_KEY = 'AIzaSyBZJUXtq2chEn3x6jAAlL3cwmASuca7oK0'
-    
+
+
     def search_places
         place = Place.new(places_params)
-        latitude, longitude, query = place.latitude, place.longitude, place.query
+        latitude, longitude, query, provider = place.latitude, place.longitude, place.query, place.provider
+        if provider.nil? || provider.titleize == "Google" || provider.titleize == "Google Places" 
+            search_google(latitude, longitude, query, provider)
+        elsif provider.titleize == "Yelp"
+            search_yelp
+        elsif provider.titleize == "Foursquare"
+            search_foursquare
+        else
+            search_google(latitude, longitude, query)
+        end
+    end
+
+    
+    private
+
+    def search_yelp
+        render status: 200, json: {
+                message: "Yelp not yet setup, use Google as the provider for now",
+            }
+    end
+
+    def search_foursquare
+        render status: 200, json: {
+            message: "Foursquare not yet setup, use Google as the provider for now",
+        }
+    end
+
+    def search_google(latitude, longitude, query, provider)
         unless latitude.nil? && longitude.nil?
-            latitude = place.latitude.to_f
-            longitude = place.longitude.to_f
-            if param_value_is_valid?(latitude, longitude) == true
-                locations = @client.spots(latitude, longitude, detail: true)
-                return_data(locations)
+            float_latitude = latitude.to_f
+            float_longitude = longitude.to_f
+            if param_value_is_valid?(float_latitude, float_longitude) == true
+                locations = @client.spots(float_latitude, float_longitude, detail: true)
+                return_data(locations, provider)
             else
                 render status: 422, json: {
                     message: "Wrong data type passed to latitude or longitude param",
@@ -21,7 +46,7 @@ class V1::PlacesController < ApplicationController
         end         
         if !query.nil?
             locations = @client.spots_by_query(query, detail: true)
-            return_data(locations)
+            return_data(locations, provider)
         else
             render status: 400, json: {
                 message: "No params provided",
@@ -29,12 +54,8 @@ class V1::PlacesController < ApplicationController
         end
     end
 
-   
-    private
-
     def validate_google_api
-        @client = GooglePlaces::Client.new(API_KEY)
-        @provider = "Google Places"
+        @client = GooglePlaces::Client.new(ENV["google_api_key"])
     end
 
     def param_value_is_valid?(latitude, longitude)
@@ -45,11 +66,12 @@ class V1::PlacesController < ApplicationController
         end       
     end
 
-    def return_data(locations)
+
+    def return_data(locations, provider)
         if locations.any?
             google_record = Array.new
             locations.each do |location| 
-                data = { ID: location.id, Provider: @provider, Name: location.name, Description:location.types.join(","), 
+                data = { ID: location.id, Provider: provider, Name: location.name, Description:location.types.join(","), 
                         Address: location.formatted_address, URI: location.url  }
                 google_record << data
             end
@@ -65,7 +87,7 @@ class V1::PlacesController < ApplicationController
     end
 
     def places_params
-        params.require(:place).permit(:latitude, :longitude, :query)
+        params.require(:place).permit(:latitude, :longitude, :query, :provider)
     end
-    
+
 end
