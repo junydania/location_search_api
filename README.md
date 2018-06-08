@@ -75,11 +75,6 @@ To use Google as the default provider, do not pass the provider parameter
 * [Rails] - Programming Language
 * [Google Place API]
 
-
-## Assumption
-* Google place API doesn't return ```description``` as part of the response. Made use of attribue :"types", joined all the words in the returned array to form the description.
-
-
 ## Authors
 
 * **Osegbemoh Dania ** 
